@@ -88,6 +88,13 @@ namespace System.IO.Compression
         public System.IO.Stream Open() { return default(System.IO.Stream); }
         public override string ToString() { return default(string); }
     }
+    public static partial class CompressionUtility
+    {
+        public static void Compress(System.IO.Stream inStream, System.IO.Stream outStream) { }
+        public static int CompressNative(string input, string output) { return default(int); }
+        public static int DecompressNative(string input, string output) { return default(int); }
+        public static void Decompress(System.IO.Stream inStream, System.IO.Stream outStream) { }
+    }
     public enum ZipArchiveMode
     {
         Create = 1,

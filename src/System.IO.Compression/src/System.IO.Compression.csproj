@@ -15,6 +15,7 @@
     <DefineConstants Condition="'$(TargetGroup)' != 'net46'">$(DefineConstants);FEATURE_ZLIB</DefineConstants>
     <IsPartialFacadeAssembly Condition="'$(TargetGroup)' == 'net46'">true</IsPartialFacadeAssembly>
     <NuGetTargetMoniker Condition="'$(TargetGroup)' == ''">.NETStandard,Version=v1.3</NuGetTargetMoniker>
+    <NoWarn>$(NoWarn);3001;3002;3003;3008</NoWarn>
   </PropertyGroup>
   <!-- Default configurations to help VS understand the options -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Unix_Debug|AnyCPU'" />
@@ -36,6 +37,22 @@
     <Compile Include="$(CommonPath)\System\IO\PathInternal.cs">
       <Link>Common\System\IO\PathInternal.cs</Link>
     </Compile>
+        <Compile Include="7zip\Common\CommandLineParser.cs" />
+    <Compile Include="7zip\Common\CRC.cs" />
+    <Compile Include="7zip\Common\InBuffer.cs" />
+    <Compile Include="7zip\Common\OutBuffer.cs" />
+    <Compile Include="7zip\CompressionUtility.cs" />
+    <Compile Include="7zip\Compress\LZMA\LzmaBase.cs" />
+    <Compile Include="7zip\Compress\LZMA\LzmaDecoder.cs" />
+    <Compile Include="7zip\Compress\LZMA\LzmaEncoder.cs" />
+    <Compile Include="7zip\Compress\LZ\IMatchFinder.cs" />
+    <Compile Include="7zip\Compress\LZ\LzBinTree.cs" />
+    <Compile Include="7zip\Compress\LZ\LzInWindow.cs" />
+    <Compile Include="7zip\Compress\LZ\LzOutWindow.cs" />
+    <Compile Include="7zip\Compress\RangeCoder\RangeCoder.cs" />
+    <Compile Include="7zip\Compress\RangeCoder\RangeCoderBit.cs" />
+    <Compile Include="7zip\Compress\RangeCoder\RangeCoderBitTree.cs" />
+    <Compile Include="7zip\ICoder.cs" />
   </ItemGroup>
   <!-- Files exclusive to Core -->
   <ItemGroup Condition="'$(TargetGroup)' != 'net46'">
