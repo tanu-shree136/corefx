@@ -5,6 +5,7 @@ setlocal
 :: Initialize the args that will be passed to cmake
 set __sourceDir=%~dp0
 set __binDir=%~dp0..\..\..\bin
+set __versionLog=%~dp0..\..\..\version.log
 set __CMakeBinDir=""
 set __IntermediatesDir=""
 set __BuildArch=x64
@@ -68,7 +69,7 @@ set __VSVersion=vs2013
 set __PlatformToolset="v120"
 :: Set the environment for the native build
 call "%VS120COMNTOOLS%\..\..\VC\vcvarsall.bat" %__VCBuildArch%
-goto :SetupDirs
+goto :GenerateVersionInfo
 
 :VS2015
 :: Setup vars for VS2015
@@ -76,8 +77,13 @@ set __VSVersion=vs2015
 set __PlatformToolset="v140"
 :: Set the environment for the native build
 call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %__VCBuildArch%
-goto :SetupDirs
+goto :GenerateVersionInfo
 
+:GenerateVersionInfo
+:: Generate Native versioning assets
+if not exist "%__binDir%\obj\_version.h" (
+    msbuild "%~dp0..\..\..\build.proj" /nologo /t:GenerateVersionHeader /p:GenerateNativeVersionInfo=true > "%__versionLog%"
+)
 
 :SetupDirs
 :: Setup to cmake the native components
@@ -94,6 +100,7 @@ set "__CMakeBinDir=%__CMakeBinDir:\=/%"
 set "__IntermediatesDir=%__IntermediatesDir:\=/%"
 
 :: Check that the intermediate directory exists so we can place our cmake build tree there
+if exist "%__CMakeBinDir%" rd /s /q "%__CMakeBinDir%"
 if exist "%__IntermediatesDir%" rd /s /q "%__IntermediatesDir%"
 if not exist "%__IntermediatesDir%" md "%__IntermediatesDir%"
 

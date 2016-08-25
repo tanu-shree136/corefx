@@ -6,3 +6,5 @@ clrcompression.dll!deflateEnd
 clrcompression.dll!crc32
 clrcompression.dll!inflateInit2_
 clrcompression.dll!deflateInit2_
+clrcompression.dll!LZMAEncodeFile
+clrcompression.dll!LZMADecodeFile

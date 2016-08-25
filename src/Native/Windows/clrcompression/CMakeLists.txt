@@ -24,6 +24,52 @@ set(NATIVECOMPRESSION_SOURCES
     zlib/inffast.c
     zlib/inflate.c
     zlib/inftrees.c
+    # Files for LZMA
+    lzma/LzmaUtil.c
+    lzma/7zFile.c
+    lzma/LzmaEnc.c
+    lzma/LzmaDec.c
+    lzma/LzFind.c
+    lzma/LzFindMt.c
+    lzma/Threads.c
+    lzma/7zStream.c
+    lzma/Alloc.c
+
+    # lzma/7zAlloc.c
+    # lzma/7zArcIn.c
+    # lzma/7zBuf.c
+    # lzma/7zBuf2.c
+    # lzma/7zCrc.c
+    # lzma/7zCrcOpt.c
+    # lzma/Aes.c
+    # lzma/AesOpt.c
+    # lzma/Bcj2.c
+    # lzma/Bcj2Enc.c
+    # lzma/Bra.c
+    # lzma/Bra86.c
+    # lzma/BraIA64.c
+    # lzma/CpuArch.c
+    # lzma/Delta.c
+    # lzma/LzFindMt.c
+    # lzma/Lzma2Dec.c
+    # lzma/Lzma2Enc.c
+    # lzma/Lzma86Dec.c
+    # lzma/Lzma86Enc.c
+    # lzma/7zDec.c
+
+    # lzma/LzmaLib.c
+    # lzma/MtCoder.c
+    # lzma/Ppmd7.c
+    # lzma/Ppmd7Dec.c
+    # lzma/Ppmd7Enc.c
+    # lzma/Sha256.c
+    # lzma/Sort.c
+    # lzma/Xz.c
+    # lzma/XzCrc64.c
+    # lzma/XzCrc64Opt.c
+    # lzma/XzDec.c
+    # lzma/XzEnc.c
+    # lzma/XzIn.c
     #zlib/gzclose.c
     #zlib/gzlib.c
     #zlib/gzread.c
