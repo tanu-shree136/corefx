@@ -111,6 +111,7 @@ namespace System.IO.Compression
                 using (Stream es = entry.Open())
                     fs.CopyTo(es);
 
+                ZipFileUtils.ApplyPermissions(entry, sourceFileName);
                 return entry;
             }
         }

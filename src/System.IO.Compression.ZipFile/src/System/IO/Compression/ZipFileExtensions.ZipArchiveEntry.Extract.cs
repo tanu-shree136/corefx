@@ -64,7 +64,38 @@ namespace System.IO.Compression
         /// The path is permitted to specify relative or absolute path information.
         /// Relative path information is interpreted as relative to the current working directory.</param>
         /// <param name="overwrite">True to indicate overwrite.</param>
-        public static void ExtractToFile(this ZipArchiveEntry source, string destinationFileName, bool overwrite)
+        public static void ExtractToFile(this ZipArchiveEntry source, string destinationFileName, bool overwrite) => 
+            ExtractToFile(source, destinationFileName, overwrite, preservePermissions: false);
+
+        /// <summary>
+        /// Creates a file on the file system with the entry?s contents and the specified name.
+        /// The last write time of the file is set to the entry?s last write time.
+        /// This method does allows overwriting of an existing file with the same name.
+        /// </summary>
+        /// 
+        /// <exception cref="UnauthorizedAccessException">The caller does not have the required permission.</exception>
+        /// <exception cref="ArgumentException">destinationFileName is a zero-length string, contains only whitespace,
+        /// or contains one or more invalid characters as defined by InvalidPathChars. -or- destinationFileName specifies a directory.</exception>
+        /// <exception cref="ArgumentNullException">destinationFileName is null.</exception>
+        /// <exception cref="PathTooLongException">The specified path, file name, or both exceed the system-defined maximum length.
+        /// For example, on Windows-based platforms, paths must be less than 248 characters, and file names must be less than 260 characters.</exception>
+        /// <exception cref="DirectoryNotFoundException">The path specified in destinationFileName is invalid
+        /// (for example, it is on an unmapped drive).</exception>
+        /// <exception cref="IOException">destinationFileName exists and overwrite is false.
+        /// -or- An I/O error has occurred.
+        /// -or- The entry is currently open for writing.
+        /// -or- The entry has been deleted from the archive.</exception>
+        /// <exception cref="NotSupportedException">destinationFileName is in an invalid format
+        /// -or- The ZipArchive that this entry belongs to was opened in a write-only mode.</exception>
+        /// <exception cref="InvalidDataException">The entry is missing from the archive or is corrupt and cannot be read
+        /// -or- The entry has been compressed using a compression method that is not supported.</exception>
+        /// <exception cref="ObjectDisposedException">The ZipArchive that this entry belongs to has been disposed.</exception>
+        /// <param name="destinationFileName">The name of the file that will hold the contents of the entry.
+        /// The path is permitted to specify relative or absolute path information.
+        /// Relative path information is interpreted as relative to the current working directory.</param>
+        /// <param name="overwrite">True to indicate overwrite.</param>
+        /// <param name="preservePermissions">True to indicate that an attempt should be made to apply permissions information stored in the zip to the entry extracted.</param>
+        public static void ExtractToFile(this ZipArchiveEntry source, string destinationFileName, bool overwrite = false, bool preservePermissions = false)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -82,12 +113,13 @@ namespace System.IO.Compression
             }
 
             File.SetLastWriteTime(destinationFileName, source.LastWriteTime.DateTime);
+            ZipFileUtils.ApplyPermissionsToFile(source, destinationFileName);
         }
 
         internal static void ExtractRelativeToDirectory(this ZipArchiveEntry source, string destinationDirectoryName) => 
             ExtractRelativeToDirectory(source, destinationDirectoryName, overwrite: false);
 
-        internal static void ExtractRelativeToDirectory(this ZipArchiveEntry source, string destinationDirectoryName, bool overwrite)
+        internal static void ExtractRelativeToDirectory(this ZipArchiveEntry source, string destinationDirectoryName, bool overwrite = false, bool preservePermissions = false)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -112,13 +144,14 @@ namespace System.IO.Compression
                     throw new IOException(SR.IO_DirectoryNameWithData);
 
                 Directory.CreateDirectory(fileDestinationPath);
+                ZipFileUtils.ApplyPermissionsToFile(source, fileDestinationPath);
             }
             else
             {
                 // If it is a file:
                 // Create containing directory:
                 Directory.CreateDirectory(Path.GetDirectoryName(fileDestinationPath));
-                source.ExtractToFile(fileDestinationPath, overwrite: overwrite);
+                source.ExtractToFile(fileDestinationPath, overwrite: overwrite, preservePermissions);
             }
         }
     }
