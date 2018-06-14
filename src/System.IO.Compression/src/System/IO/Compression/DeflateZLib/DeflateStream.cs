@@ -277,7 +277,8 @@ namespace System.IO.Compression
                 int bytes = _stream.Read(_buffer, 0, _buffer.Length);
                 if (bytes <= 0)
                 {
-                    break;
+                    if (_inflater.NeedsInput())
+                        break;
                 }
                 else if (bytes > _buffer.Length)
                 {
@@ -285,8 +286,10 @@ namespace System.IO.Compression
                     // bytes larger than the buffer supplied to it.
                     throw new InvalidDataException(SR.GenericInvalidData);
                 }
-
-                _inflater.SetInput(_buffer, 0, bytes);
+                else
+                {
+                    _inflater.SetInput(_buffer, 0, bytes);
+                }
             }
 
             return totalRead;

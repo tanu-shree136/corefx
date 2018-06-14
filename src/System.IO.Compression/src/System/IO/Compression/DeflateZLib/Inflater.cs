@@ -18,6 +18,7 @@ namespace System.IO.Compression
 
         private bool _finished;                             // Whether the end of the stream has been reached
         private bool _isDisposed;                           // Prevents multiple disposals
+        private int _windowBits;                            // The WindowBits parameter passed to Inflater construction
         private ZLibNative.ZLibStreamHandle _zlibStream;    // The handle to the primary underlying zlib stream
         private GCHandle _inputBufferHandle;                // The handle to the buffer that provides input to _zlibStream
 
@@ -31,6 +32,7 @@ namespace System.IO.Compression
             Debug.Assert(windowBits >= MinWindowBits && windowBits <= MaxWindowBits);
             _finished = false;
             _isDisposed = false;
+            _windowBits = windowBits;
             InflateInit(windowBits);
         }
 
@@ -84,7 +86,14 @@ namespace System.IO.Compression
                 int bytesRead;
                 if (ReadInflateOutput(bufPtr, length, ZLibNative.FlushCode.NoFlush, out bytesRead) == ZLibNative.ErrorCode.StreamEnd)
                 {
-                    _finished = true;
+                    if (!NeedsInput() && IsGzipStream() && _inputBufferHandle.IsAllocated && ResetStreamForLeftoverInput())
+                    {
+                        _finished = false;
+                    }
+                    else
+                    {
+                        _finished = true;
+                    }
                 }
                 return bytesRead;
             }
@@ -98,24 +107,85 @@ namespace System.IO.Compression
             }
         }
 
+        /// <summary>
+        /// If this stream has some input leftover that hasn't been processed then we should
+        /// check if it is another GZip file concatenated with this one.
+        /// 
+        /// Returns true if the leftover input is another GZip data stream.
+        /// </summary>
+        private unsafe bool ResetStreamForLeftoverInput()
+        {
+            Debug.Assert(!NeedsInput());
+            Debug.Assert(IsGzipStream());
+            Debug.Assert(_inputBufferHandle.IsAllocated);
+
+            lock (SyncLock)
+            {
+                byte[] leftover = new byte[_zlibStream.AvailIn];
+
+                GCHandle newInputBufferHandle = GCHandle.Alloc(leftover, GCHandleType.Pinned);
+                Buffer.MemoryCopy(_zlibStream.NextIn.ToPointer(), newInputBufferHandle.AddrOfPinnedObject().ToPointer(), _zlibStream.AvailIn, _zlibStream.AvailIn);
+
+                // Check the leftover bytes to see if they start with a valid GZip header
+                if (leftover[0] != ZLibNative.GZip_Header_ID1 || (leftover.Length > 1 && leftover[1] != ZLibNative.GZip_Header_ID2))
+                    return false;
+
+                // Trash our existing zstream.
+                _zlibStream.Dispose();
+                if (_inputBufferHandle.IsAllocated)
+                    DeallocateInputBufferHandle();
+
+                // Create a new zstream
+                InflateInit(_windowBits);
+
+                // SetInput on the new stream to the bits remaining from the last stream
+                if (leftover != null)
+                    SetInput(leftover, 0, leftover.Length);
+            }
+
+            return true;
+        }
+
+        private bool IsGzipStream() => _windowBits >= 24 && _windowBits <= 31;
+
         public bool NeedsInput() => _zlibStream.AvailIn == 0;
 
-        public void SetInput(byte[] inputBuffer, int startIndex, int count)
+        public unsafe void SetInput(byte[] inputBuffer, int startIndex, int count)
         {
-            Debug.Assert(NeedsInput(), "We have something left in previous input!");
             Debug.Assert(inputBuffer != null);
             Debug.Assert(startIndex >= 0 && count >= 0 && count + startIndex <= inputBuffer.Length);
-            Debug.Assert(!_inputBufferHandle.IsAllocated);
 
             if (0 == count)
                 return;
 
             lock (SyncLock)
             {
-                _inputBufferHandle = GCHandle.Alloc(inputBuffer, GCHandleType.Pinned);
-                _zlibStream.NextIn = _inputBufferHandle.AddrOfPinnedObject() + startIndex;
-                _zlibStream.AvailIn = (uint)count;
+
+                //If there is anything left over in the input, copy it to the new input stream
+                if (!NeedsInput() || _inputBufferHandle.IsAllocated)
+                {
+                    int leftoverBytes = (int)_zlibStream.AvailIn;
+                    byte[] leftoverPlusNew = new byte[leftoverBytes + count];
+                    GCHandle combinedDataBufferHandle = GCHandle.Alloc(leftoverPlusNew, GCHandleType.Pinned);
+                    Buffer.MemoryCopy(_zlibStream.NextIn.ToPointer(), combinedDataBufferHandle.AddrOfPinnedObject().ToPointer(), leftoverBytes, leftoverBytes);
+                    DeallocateInputBufferHandle();
+
+                    GCHandle newDataInputBufferHandle = GCHandle.Alloc(inputBuffer, GCHandleType.Pinned);
+                    Buffer.MemoryCopy((newDataInputBufferHandle.AddrOfPinnedObject() + startIndex).ToPointer(), (combinedDataBufferHandle.AddrOfPinnedObject() + leftoverBytes).ToPointer(), count, count);
+                    newDataInputBufferHandle.Free();
+
+                    _inputBufferHandle = combinedDataBufferHandle;
+                    _zlibStream.NextIn = combinedDataBufferHandle.AddrOfPinnedObject();
+                    _zlibStream.AvailIn = (uint)(leftoverBytes + count);
+                }
+                else
+                {
+                    _inputBufferHandle = GCHandle.Alloc(inputBuffer, GCHandleType.Pinned);
+                    _zlibStream.NextIn = _inputBufferHandle.AddrOfPinnedObject() + startIndex;
+                    _zlibStream.AvailIn = (uint)count;
+                }
                 _finished = false;
+
             }
         }
 
